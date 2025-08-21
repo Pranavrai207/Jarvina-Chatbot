@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvina AI Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /*
+         * Soft Pastel and White Theme
+         * ---------------------------
+         * This theme uses a clean, bright aesthetic with white and cream backgrounds,
+         * a simple sans-serif font, and subtle pastel colors for highlights.
+         */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            color: #333; /* Dark gray for text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-weight: 400;
+        }
+        .chat-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff; /* Main chat container is pure white */
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 280px;
+            background-color: #fefefe; /* Creamy white for the sidebar */
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0; /* Subtle light gray border */
+            flex-shrink: 0;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff; /* Pure white for main content area */
+        }
+        .chat-area {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .message-input-area {
+            padding: 20px 24px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .message-input {
+            flex-grow: 1;
+            background-color: #f9f9f9; /* Off-white for input field */
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-radius: 25px;
+            padding: 12px 20px;
+            outline: none;
+            font-size: 1rem;
+            transition: box-shadow 0.3s ease;
+            min-height: 50px;
+            resize: none;
+            line-height: 1.5;
+        }
+        .message-input:focus {
+            border-color: #b0c4de; /* A soft blue */
+            box-shadow: 0 0 8px rgba(176, 196, 222, 0.5);
+        }
+        .message-input::placeholder {
+            color: #b0b0b0; /* Light gray placeholder text */
+        }
+        .send-button {
+            background-color: #87ceeb; /* Soft sky blue */
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            font-weight: 600;
+        }
+        .send-button:hover {
+            background-color: #72b9d9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(135, 206, 235, 0.3);
+        }
+        .send-button:active {
+            transform: translateY(1px);
+        }
+        .user-message {
+            background-color: #f5f5f5; /* Light gray for user messages */
+            color: #333;
+            align-self: flex-end;
+            padding: 12px 18px;
+            border-radius: 20px 20px 0 20px;
+            margin-bottom: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            opacity: 0; /* Initial state for fade-in */
+            animation: fadeIn 0.5s forwards;
+        }
+        .ai-message {
+            background-color: #e6e6fa; /* Soft lavender for AI messages */
+            color: #333;
+            align-self: flex-start;
+            padding: 12px 18px;
+            border-radius: 20px 20px 20px 0;
+            margin-bottom: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            opacity: 0; /* Initial state for fade-in */
+            animation: fadeIn 0.5s forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sidebar-button {
+            display: block;
+            width: 100%;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            background-color: #f0f8ff; /* Soft light blue */
+            color: #444;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            text-align: left;
+        }
+        .sidebar-button:hover {
+            background-color: #e0f0ff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .sidebar-button.active {
+            background-color: #87ceeb;
+            color: white;
+            box-shadow: 0 4px 8px rgba(135, 206, 235, 0.3);
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #555;
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .form-section {
+            display: none;
+            padding: 24px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            flex-grow: 1;
+            overflow-y: auto;
+            color: #333;
+        }
+        .form-section.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-section h3 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-section p {
+            color: #555;
+        }
+        .form-section textarea {
+            width: 100%;
+            min-height: 120px;
+            background-color: #f9f9f9;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            resize: vertical;
+            outline: none;
+            transition: box-shadow 0.3s ease;
+        }
+        .form-section textarea:focus {
+            border-color: #b0c4de;
+            box-shadow: 0 0 8px rgba(176, 196, 222, 0.5);
+        }
+        .form-section button {
+            background-color: #87ceeb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 8px rgba(135, 206, 235, 0.2);
+            font-weight: 600;
+        }
+        .form-section button:hover {
+            background-color: #72b9d9;
+            box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+        }
+
+        /* Drag and Drop styles */
+        .drop-area {
+            border: 2px dashed #b0c4de;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .drop-area.highlight {
+            background-color: #f0f8ff;
+            border-color: #b0c4de;
+        }
+        .file-upload-icon {
+            font-size: 2.2rem;
+            color: #b0c4de;
+            margin-bottom: 10px;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+        .file-list li {
+            background-color: #f9f9f9;
+            color: #555;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        .file-list .remove-file {
+            background: none;
+            border: none;
+            color: #ff6347; /* Coral red for delete icon */
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0 5px;
+        }
+
+        /* Tools Button and Dropdown */
+        .tools-container {
+            position: relative;
+        }
+        .icon-button {
+            background-color: #f0f8ff;
+            color: #87ceeb;
+            border: none;
+            border-radius: 50%;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .icon-button:hover {
+            background-color: #e0f0ff;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .tools-dropdown {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            min-width: 220px;
+            z-index: 1000;
+            display: none;
+            padding: 10px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .tools-dropdown.active {
+            display: block;
+        }
+        .tools-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 12px 18px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .tools-dropdown button:hover {
+            background-color: #f0f2f5;
+        }
+
+        /* Canvas specific styles for code preview */
+        .canvas-code-editor {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .canvas-code-editor textarea {
+            flex-grow: 1;
+            min-height: 150px;
+            margin-bottom: 12px;
+        }
+        .canvas-code-preview {
+            flex-grow: 2;
+            border: 1px solid #e0e0e0;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+        .canvas-code-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="chat-container">
+        <aside class="sidebar">
+            <div class="logo">Jarvina</div>
+            <button class="sidebar-button active" onclick="showChat()">New Chat</button>
+            <button class="sidebar-button" onclick="showHistory()">History</button>
+            <button class="sidebar-button" onclick="showSettings()">Settings</button>
+        </aside>
+
+        <main class="main-content">
+            <div id="chat-view" class="chat-area flex flex-col">
+                <!-- Chat messages will be added here by JS -->
+            </div>
+
+            <div id="canvas-view" class="form-section">
+                <h3>Code Preview Canvas</h3>
+                <p class="text-gray-500 mb-4">Paste your HTML, CSS, or JavaScript code below to preview it.</p>
+                <div class="canvas-code-editor">
+                    <textarea id="canvasCodeInput" class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Paste your HTML, CSS, or JavaScript code here."></textarea>
+                    <button id="runCanvasCodeButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300">Run Code</button>
+                </div>
+                <div id="canvasCodePreview" class="canvas-code-preview mt-6">
+                    <!-- Code preview will be rendered here in an iframe -->
+                </div>
+            </div>
+
+            <div id="history-view" class="form-section">
+                <h3>Chat History</h3>
+                <div id="historyContent" class="flex flex-col">
+                    <!-- History content will be loaded here by JS -->
+                </div>
+            </div>
+
+            <div id="settings-view" class="form-section">
+                <h3>Settings</h3>
+                <p class="text-gray-500 mb-4">Adjust your preferences here.</p>
+
+                <div class="mt-4">
+                    <h4 class="font-semibold text-gray-700 mb-2">Custom Instructions for Jarvina:</h4>
+                    <textarea id="customInstructions" class="w-full min-h-[120px] border border-gray-300 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Tell Jarvina how you'd like it to respond. E.g., 'Always be concise', 'Use technical terms', 'Avoid jargon'."></textarea>
+                    <button id="saveCustomInstructions" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300">Save Custom Instructions</button>
+                    <p id="customInstructionsStatus" class="text-sm mt-2 text-gray-600"></p>
+                </div>
+            </div>
+
+            <div class="message-input-area">
+                <input type="file" id="fileInput" multiple hidden>
+                <button id="fileUploadButton" class="icon-button mr-4">
+                    <i class="fas fa-plus"></i>
+                </button>
+
+                <div class="tools-container mr-4">
+                    <button id="toolsButton" class="icon-button">
+                        <i class="fas fa-wrench"></i>
+                    </button>
+                    <div id="toolsDropdown" class="tools-dropdown">
+                        <button id="imageGenTool">Image Generation</button>
+                        <button id="videoGenTool">Video Generation</button>
+                        <button id="textToPdfTool">Text to PDF</button>
+                        <button id="textToExcelTool">Text to Excel</button>
+                        <button id="textToWordTool">Text to Word</button>
+                        <button id="canvasTool">Canvas</button> <!-- Added Canvas button -->
+                        <button id="webSearchTool">Web Search</button> <!-- Added Web Search button -->
+                    </div>
+                </div>
+                
+                <textarea id="userMessage" class="message-input" placeholder="Type your message..."></textarea>
+                <button id="sendMessage" class="send-button">Send</button>
+            </div>
+            <p id="loadingIndicator" class="text-gray-500 text-sm text-center py-2 hidden">Sending message...</p>
+        </main>
+    </div>
+
+    <script>
+        const chatArea = document.getElementById('chat-view');
+        const userMessageInput = document.getElementById('userMessage');
+        const sendMessageButton = document.getElementById('sendMessage');
+        const fileInput = document.getElementById('fileInput');
+        const fileUploadButton = document.getElementById('fileUploadButton');
+        const toolsButton = document.getElementById('toolsButton');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        
+        // New elements for code preview in canvas
+        const canvasCodeInput = document.getElementById('canvasCodeInput');
+        const runCanvasCodeButton = document.getElementById('runCanvasCodeButton');
+        const canvasCodePreview = document.getElementById('canvasCodePreview');
+        
+        const customInstructionsTextarea = document.getElementById('customInstructions');
+        const saveCustomInstructionsButton = document.getElementById('saveCustomInstructions');
+        const customInstructionsStatus = document.getElementById('customInstructionsStatus');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const messageInputArea = document.querySelector('.message-input-area');
+        let droppedFiles = [];
+
+        // Global array to store chat history
+        let chatHistory = [];
+        const HISTORY_STORAGE_KEY = 'jarvina_chat_history';
+
+        // Get the history content div
+        const historyContent = document.getElementById('historyContent');
+
+        /**
+         * Appends a message to the chat area and optionally saves it to history.
+         * @param {string} content - The message content.
+         * @param {string} senderClass - CSS class for the sender ('user-message' or 'ai-message').
+         * @param {boolean} [toHistory=true] - Whether to save this message to local history.
+         */
+        function appendMessage(content, senderClass, toHistory = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = senderClass;
+            bubbleDiv.textContent = content;
+            messageDiv.appendChild(bubbleDiv);
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            if (toHistory) {
+                chatHistory.push({ content, senderClass });
+                saveChatHistory();
+                console.log('appendMessage: Message appended and saved to history:', { content, senderClass }, 'Current in-memory history:', chatHistory);
+            } else {
+                console.log('appendMessage: Message appended (not saved to history):', { content, senderClass });
+            }
+        }
+
+        /**
+         * Saves the current chatHistory array to localStorage.
+         */
+        function saveChatHistory() {
+            try {
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(chatHistory));
+                console.log('saveChatHistory: Chat history saved to localStorage. Current in-memory history:', chatHistory);
+                // Also log what's actually in localStorage for direct verification
+                console.log('saveChatHistory: Content in localStorage for key "jarvina_chat_history":', localStorage.getItem(HISTORY_STORAGE_KEY));
+            } catch (e) {
+                console.error('saveChatHistory: Error saving chat history to localStorage:', e);
+            }
+        }
+
+        /**
+         * Loads chat history from localStorage into the chatHistory array.
+         */
+        function loadChatHistory() {
+            try {
+                const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
+                if (storedHistory) {
+                    chatHistory = JSON.parse(storedHistory);
+                    console.log('loadChatHistory: Successfully loaded from localStorage. Data:', chatHistory);
+                } else {
+                    chatHistory = [];
+                    console.log('loadChatHistory: No chat history found in localStorage. Initializing empty history.');
+                }
+            } catch (e) {
+                console.error('loadChatHistory: Error loading chat history from localStorage:', e);
+                chatHistory = []; // Ensure history is empty on error
+            }
+        }
+
+        /**
+         * Displays the current chatHistory in the historyContent div.
+         */
+        function displayChatHistory() {
+            historyContent.innerHTML = ''; // Clear previous history display
+            console.log('displayChatHistory: Attempting to display history. Current chatHistory length:', chatHistory.length);
+            if (chatHistory.length === 0) {
+                const noHistoryMessage = document.createElement('p');
+                noHistoryMessage.textContent = 'Your chat history will appear here.';
+                noHistoryMessage.classList.add('text-gray-500', 'text-center', 'py-4');
+                historyContent.appendChild(noHistoryMessage);
+                console.log('displayChatHistory: History content is empty, displaying placeholder.');
+            } else {
+                chatHistory.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `flex ${msg.senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.className = msg.senderClass;
+                    bubbleDiv.textContent = msg.content;
+                    messageDiv.appendChild(bubbleDiv);
+                    historyContent.appendChild(messageDiv);
+                });
+                historyContent.scrollTop = historyContent.scrollHeight;
+                console.log('displayChatHistory: Chat history successfully displayed in historyContent div.');
+            }
+        }
+
+        // --- Sidebar Navigation ---
+        function hideAllSections() {
+            document.getElementById('chat-view').classList.remove('flex');
+            document.getElementById('chat-view').classList.add('hidden');
+            document.getElementById('canvas-view').classList.remove('active');
+            document.getElementById('history-view').classList.remove('active');
+            document.getElementById('settings-view').classList.remove('active');
+            document.querySelectorAll('.sidebar-button').forEach(btn => btn.classList.remove('active'));
+            console.log('hideAllSections: All sections hidden.');
+        }
+
+        /**
+         * Shows the chat view and initiates a new chat session, clearing history.
+         */
+        function showChat() {
+            hideAllSections();
+            // When starting a new chat, clear current chat view and history
+            chatArea.innerHTML = ''; // Clear existing messages from chat display
+            chatHistory = []; // Clear in-memory history
+            localStorage.removeItem(HISTORY_STORAGE_KEY); // Clear local storage history
+            console.log('showChat: New chat initiated. All history cleared from display and localStorage.');
+            
+            // Add the initial AI message for a new chat and save it to the *new* history
+            appendMessage('Hello, I am Jarvina your personal ai assistant. How can i assist you today?', 'ai-message', true);
+            userMessageInput.value = ''; // Also clear the input field
+
+            document.getElementById('chat-view').classList.add('flex');
+            document.getElementById('chat-view').classList.remove('hidden');
+            document.querySelector('.sidebar-button:nth-child(1)').classList.add('active');
+            console.log('showChat: Chat view activated.');
+        }
+
+        /**
+         * Shows the chat history view.
+         */
+        function showHistory() {
+            hideAllSections();
+            document.getElementById('history-view').classList.add('active');
+            document.querySelector('.sidebar-button:nth-child(2)').classList.add('active');
+            
+            console.log('showHistory: Loading chat history...');
+            loadChatHistory(); // Load history when the tab is shown
+            console.log('showHistory: Chat history after loading:', chatHistory);
+            
+            displayChatHistory(); // Display the loaded history
+            console.log('showHistory: History tab shown. History loaded and displayed.');
+        }
+
+        /**
+         * Shows the settings view.
+         */
+        function showSettings() {
+            hideAllSections();
+            document.getElementById('settings-view').classList.add('active');
+            document.querySelector('.sidebar-button:nth-child(3)').classList.add('active');
+            loadCustomInstructions(); // Load instructions when settings are shown
+            console.log('showSettings: Settings tab shown.');
+        }
+
+        // Function to show Canvas view (now for code preview)
+        function showCanvas() {
+            hideAllSections();
+            document.getElementById('canvas-view').classList.add('active');
+            // No sidebar button for canvas, so no active class for sidebar
+            // Initial run of an empty iframe to clear previous content if any
+            runCanvasCode();
+            console.log('showCanvas: Canvas view activated for code preview.');
+        }
+
+
+        // --- Initial Load Logic ---
+        // This runs once the DOM is fully loaded.
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded: Page loaded. Attempting to load chat history.');
+            loadChatHistory(); // Load history from localStorage
+
+            // Populate the main chat area with loaded history or a blank slate
+            chatArea.innerHTML = ''; // Clear any initial static HTML greeting (like the one in your original code)
+            if (chatHistory.length > 0) {
+                console.log('DOMContentLoaded: Populating chat area with loaded history.');
+                chatHistory.forEach(msg => {
+                    // Append messages to chatArea without re-saving them to history
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `flex ${msg.senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.className = msg.senderClass;
+                    bubbleDiv.textContent = msg.content;
+                    messageDiv.appendChild(bubbleDiv);
+                    chatArea.appendChild(messageDiv);
+                });
+                chatArea.scrollTop = chatArea.scrollHeight;
+            } else {
+                console.log('DOMContentLoaded: No history found, starting with a blank chat.');
+            }
+            
+            // Activate the chat view and its corresponding sidebar button
+            document.getElementById('chat-view').classList.add('flex');
+            document.getElementById('chat-view').classList.remove('hidden');
+            document.querySelector('.sidebar-button:nth-child(1)').classList.add('active');
+            console.log('DOMContentLoaded: Chat view activated.');
+        });
+
+
+        // --- Chat Functionality ---
+        sendMessageButton.addEventListener('click', async () => {
+            const userMessage = userMessageInput.value.trim();
+            console.log('sendMessageButton: Send button clicked. User message:', userMessage);
+            if (userMessage) {
+                appendMessage(userMessage, 'user-message'); // This will save to history
+                userMessageInput.value = '';
+                loadingIndicator.classList.remove('hidden');
+
+                try {
+                    console.log('sendMessageButton: Attempting to send message to /api/chat/mistral/');
+                    const response = await fetch('/api/chat/mistral/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ prompt: userMessage })
+                    });
+                    console.log('sendMessageButton: Response received:', response);
+                    const data = await response.json();
+                    console.log('sendMessageButton: Response data:', data);
+
+                    if (response.ok) {
+                        appendMessage(data.response, 'ai-message'); // This will save to history
+                    } else {
+                        appendMessage(`Error: ${data.detail || 'Something went wrong.'}`, 'ai-message');
+                        console.error('sendMessageButton: API Error:', data);
+                    }
+                } catch (error) {
+                    console.error('sendMessageButton: Error sending message or processing response:', error);
+                    appendMessage('Error: Could not connect to the server or process response.', 'ai-message');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            } else {
+                console.log('sendMessageButton: User message is empty, not sending.');
+            }
+        });
+
+        userMessageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessageButton.click();
+            }
+        });
+
+        // --- File Upload (Plus Icon) ---
+        fileUploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files.length > 0) {
+                console.log('fileInput: Files selected:', files);
+                let fileNames = Array.from(files).map(file => file.name).join(', ');
+                appendMessage(`Selected files: ${fileNames}`, 'user-message');
+            }
+        });
+
+        // --- Drag and Drop Feature ---
+        messageInputArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            messageInputArea.classList.add('highlight');
+        });
+
+        messageInputArea.addEventListener('dragleave', () => {
+            messageInputArea.classList.remove('highlight');
+        });
+
+        messageInputArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            messageInputArea.classList.remove('highlight');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                droppedFiles = Array.from(files);
+                console.log('messageInputArea: Files dropped:', droppedFiles);
+                let fileNames = droppedFiles.map(file => file.name).join(', ');
+                appendMessage(`Dropped files: ${fileNames}`, 'user-message');
+            }
+        });
+
+        // --- Tools Button and Dropdown ---
+        toolsButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toolsDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!toolsDropdown.contains(event.target) && !toolsButton.contains(event.target)) {
+                toolsDropdown.classList.remove('active');
+            }
+        });
+
+        document.getElementById('imageGenTool').addEventListener('click', () => {
+            customAlert('Image Generation tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('videoGenTool').addEventListener('click', () => {
+            customAlert('Video Generation tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToPdfTool').addEventListener('click', () => {
+            customAlert('Text to PDF tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToExcelTool').addEventListener('click', () => {
+            customAlert('Text to Excel tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToWordTool').addEventListener('click', () => {
+            customAlert('Text to Word tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        // Event listener for Canvas button
+        document.getElementById('canvasTool').addEventListener('click', () => {
+            showCanvas();
+            toolsDropdown.classList.remove('active');
+        });
+        // Event listener for Web Search button
+        document.getElementById('webSearchTool').addEventListener('click', () => {
+            customAlert('Web Search tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+
+
+        function customAlert(message) {
+            const messageBox = document.createElement('div');
+            messageBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: #ffffff;
+                color: #333;
+                padding: 24px;
+                border-radius: 12px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+                z-index: 9999;
+                text-align: center;
+                font-family: 'Poppins', sans-serif;
+                border: 1px solid #e0e0e0;
+            `;
+            messageBox.innerHTML = `
+                <p>${message}</p>
+                <button style="
+                    background-color: #87ceeb;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px 20px;
+                    margin-top: 20px;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                " onmouseover="this.style.backgroundColor='#72b9d9'" onmouseout="this.style.backgroundColor='#87ceeb'">
+                    OK
+                </button>
+            `;
+            document.body.appendChild(messageBox);
+            messageBox.querySelector('button').onclick = () => messageBox.remove();
+        }
+
+        // --- Canvas Code Preview Logic ---
+        runCanvasCodeButton.addEventListener('click', runCanvasCode);
+
+        function runCanvasCode() {
+            const code = canvasCodeInput.value;
+            canvasCodePreview.innerHTML = ''; // Clear previous content
+
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.srcdoc = code; // Load the user's code into the iframe securely
+            
+            canvasCodePreview.appendChild(iframe);
+            console.log('runCanvasCode: Code loaded into iframe for preview.');
+        }
+
+        // --- Custom Instructions Logic ---
+        saveCustomInstructionsButton.addEventListener('click', async () => {
+            const instructions = customInstructionsTextarea.value.trim();
+            try {
+                const response = await fetch('/api/save_custom_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ instructions: instructions })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    customInstructionsStatus.textContent = data.message;
+                    customInstructionsStatus.style.color = 'green';
+                } else {
+                    customInstructionsStatus.textContent = `Error: ${data.detail || 'Failed to save instructions.'}`;
+                    customInstructionsStatus.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('saveCustomInstructionsButton: Error saving custom instructions:', error);
+                customInstructionsStatus.textContent = 'Error: Could not connect to the server to save instructions.';
+                customInstructionsStatus.style.color = 'red';
+            }
+        });
+
+        async function loadCustomInstructions() {
+            try {
+                const response = await fetch('/api/load_custom_instructions');
+                const data = await response.json();
+                if (response.ok && data.instructions !== undefined) {
+                    customInstructionsTextarea.value = data.instructions;
+                } else {
+                    console.warn('loadCustomInstructions: No custom instructions found or error loading:', data.detail);
+                }
+            } catch (error) {
+                console.error('loadCustomInstructions: Error loading custom instructions:', error);
+            }
+        }
+    </script>
+</body>
+</html>
