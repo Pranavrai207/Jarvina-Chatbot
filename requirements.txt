@@ -5,6 +5,9 @@ jinja2
 python-dotenv
 requests
 pydantic
-google-genai
 python-multipart
-
+fpdf2
+openpyxl
+python-docx
+tinydb
+google-genai
