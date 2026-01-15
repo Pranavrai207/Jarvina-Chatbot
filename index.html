@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jarvina AI Assistant</title>
+    <!-- Main stylesheet for non-theme-specific styles -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <style>
+    <!-- Libraries for Export Functionality -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/docx@7.3.0/build/index.js"></script>
+    <style id="theme-stylesheet">
         /*
-         * Soft Pastel and White Theme
-         * ---------------------------
-         * This theme uses a clean, bright aesthetic with white and cream backgrounds,
-         * a simple sans-serif font, and subtle pastel colors for highlights.
+         * CORE APP STYLES
          */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
@@ -24,8 +26,6 @@
         }
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f0f2f5; /* Light gray background */
-            color: #333; /* Dark gray for text */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -38,64 +38,69 @@
             display: flex;
             width: 100%;
             height: 100%;
-            background-color: #ffffff; /* Main chat container is pure white */
             border-radius: 0;
             box-shadow: none;
             overflow: hidden;
         }
         .sidebar {
             width: 280px;
-            background-color: #fefefe; /* Creamy white for the sidebar */
             padding: 24px;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid #e0e0e0; /* Subtle light gray border */
+            border-right: 1px solid;
             flex-shrink: 0;
         }
         .main-content {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            background-color: #ffffff; /* Pure white for main content area */
         }
         .chat-area {
             flex-grow: 1;
             padding: 24px;
             overflow-y: auto;
         }
+        #file-preview-container {
+            padding: 0 24px 10px;
+            border-top: 1px solid;
+            display: none;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+        #export-mode-indicator {
+            padding: 8px 24px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
         .message-input-area {
             padding: 20px 24px;
-            border-top: 1px solid #e0e0e0;
+            border-top: 1px solid;
             display: flex;
-            align-items: center;
-            background-color: #ffffff;
+            align-items: flex-end; /* Align to bottom so it grows upwards */
             position: relative;
             flex-shrink: 0;
         }
         .message-input {
             flex-grow: 1;
-            background-color: #f9f9f9; /* Off-white for input field */
-            color: #333;
-            border: 1px solid #e0e0e0;
+            border: 1px solid;
             border-radius: 25px;
             padding: 12px 20px;
             outline: none;
             font-size: 1rem;
             transition: box-shadow 0.3s ease;
             min-height: 50px;
+            max-height: 200px; /* Max height for input expansion */
             resize: none;
             line-height: 1.5;
+            overflow-y: auto;
         }
         .message-input:focus {
-            border-color: #b0c4de; /* A soft blue */
             box-shadow: 0 0 8px rgba(176, 196, 222, 0.5);
         }
-        .message-input::placeholder {
-            color: #b0b0b0; /* Light gray placeholder text */
-        }
         .send-button {
-            background-color: #87ceeb; /* Soft sky blue */
-            color: white;
             border: none;
             border-radius: 25px;
             padding: 12px 24px;
@@ -103,18 +108,15 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             font-weight: 600;
+            margin-bottom: 2px;
         }
         .send-button:hover {
-            background-color: #72b9d9;
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(135, 206, 235, 0.3);
         }
         .send-button:active {
             transform: translateY(1px);
         }
         .user-message {
-            background-color: #f5f5f5; /* Light gray for user messages */
-            color: #333;
             align-self: flex-end;
             padding: 12px 18px;
             border-radius: 20px 20px 0 20px;
@@ -122,12 +124,9 @@
             max-width: 70%;
             word-wrap: break-word;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            opacity: 0; /* Initial state for fade-in */
-            animation: fadeIn 0.5s forwards;
         }
         .ai-message {
-            background-color: #e6e6fa; /* Soft lavender for AI messages */
-            color: #333;
+            position: relative;
             align-self: flex-start;
             padding: 12px 18px;
             border-radius: 20px 20px 20px 0;
@@ -135,20 +134,26 @@
             max-width: 70%;
             word-wrap: break-word;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            opacity: 0; /* Initial state for fade-in */
-            animation: fadeIn 0.5s forwards;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .copy-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            padding: 4px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+        }
+        .ai-message:hover .copy-icon {
+            opacity: 1;
         }
         .sidebar-button {
             display: block;
             width: 100%;
             padding: 14px 18px;
             margin-bottom: 12px;
-            background-color: #f0f8ff; /* Soft light blue */
-            color: #444;
             border: none;
             border-radius: 12px;
             font-size: 1rem;
@@ -157,34 +162,25 @@
             text-align: left;
         }
         .sidebar-button:hover {
-            background-color: #e0f0ff;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         .sidebar-button.active {
-            background-color: #87ceeb;
-            color: white;
             box-shadow: 0 4px 8px rgba(135, 206, 235, 0.3);
         }
         .logo {
             font-size: 2rem;
             font-weight: 600;
-            color: #555;
             text-align: center;
             margin-bottom: 40px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid;
         }
         .form-section {
             display: none;
             padding: 24px;
-            border: 1px solid #e0e0e0;
             border-radius: 12px;
-            margin: 20px;
-            background-color: #ffffff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             flex-grow: 1;
             overflow-y: auto;
-            color: #333;
         }
         .form-section.active {
             display: flex;
@@ -193,18 +189,12 @@
         .form-section h3 {
             font-size: 1.6rem;
             font-weight: 600;
-            color: #333;
             margin-bottom: 20px;
-        }
-        .form-section p {
-            color: #555;
         }
         .form-section textarea {
             width: 100%;
             min-height: 120px;
-            background-color: #f9f9f9;
-            color: #333;
-            border: 1px solid #e0e0e0;
+            border: 1px solid;
             border-radius: 12px;
             padding: 12px;
             font-size: 1rem;
@@ -214,12 +204,9 @@
             transition: box-shadow 0.3s ease;
         }
         .form-section textarea:focus {
-            border-color: #b0c4de;
             box-shadow: 0 0 8px rgba(176, 196, 222, 0.5);
         }
         .form-section button {
-            background-color: #87ceeb;
-            color: white;
             border: none;
             border-radius: 12px;
             padding: 12px 24px;
@@ -230,210 +217,317 @@
             font-weight: 600;
         }
         .form-section button:hover {
-            background-color: #72b9d9;
             box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
         }
-
-        /* Drag and Drop styles */
-        .drop-area {
-            border: 2px dashed #b0c4de;
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
-            color: #888;
-            margin-bottom: 15px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        .drop-area.highlight {
-            background-color: #f0f8ff;
-            border-color: #b0c4de;
-        }
-        .file-upload-icon {
-            font-size: 2.2rem;
-            color: #b0c4de;
-            margin-bottom: 10px;
-        }
-        .file-list {
-            list-style: none;
-            padding: 0;
-            margin-top: 10px;
-        }
-        .file-list li {
-            background-color: #f9f9f9;
-            color: #555;
-            border-radius: 8px;
-            padding: 10px 15px;
-            margin-bottom: 8px;
+        .history-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.95rem;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
         }
-        .file-list .remove-file {
-            background: none;
-            border: none;
-            color: #ff6347; /* Coral red for delete icon */
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 0 5px;
+        .history-item button {
+            margin-left: 5px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
         }
-
-        /* Tools Button and Dropdown */
-        .tools-container {
-            position: relative;
+        .delete-btn {
+            background-color: #dc2626 !important;
         }
-        .icon-button {
-            background-color: #f0f8ff;
-            color: #87ceeb;
-            border: none;
-            border-radius: 50%;
-            padding: 0;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        .delete-btn:hover {
+            background-color: #b91c1c !important;
+        }
+        .rename-btn {
+            background-color: #f59e0b !important;
+            color: white !important;
+        }
+        .rename-btn:hover {
+             background-color: #d97706 !important;
+        }
+        #canvas-view {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+        }
+        .canvas-header {
+            padding: 12px 24px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid;
         }
-        .icon-button:hover {
-            background-color: #e0f0ff;
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        .canvas-toggle-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .canvas-toggle-btn.active {
+            font-weight: 600;
+        }
+        #canvas-code-container, #canvas-preview-container {
+            flex-grow: 1;
+            overflow: auto;
+        }
+        #canvasCodeInput {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            outline: none;
+            padding: 16px;
+            font-family: monospace;
+        }
+        #canvasCodePreview {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
         .tools-dropdown {
             position: absolute;
-            bottom: 60px;
+            bottom: 100%;
             left: 0;
-            background-color: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             min-width: 220px;
             z-index: 1000;
             display: none;
             padding: 10px 0;
-            border: 1px solid #e0e0e0;
+            border: 1px solid;
+            margin-bottom: 10px;
         }
-        .tools-dropdown.active {
-            display: block;
+        .icon-button-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 5px;
+        }
+        .icon-button-circle:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .tools-dropdown button {
             display: block;
             width: 100%;
-            padding: 12px 18px;
+            padding: 10px 20px;
             text-align: left;
             background: none;
             border: none;
-            color: #555;
             cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .tools-dropdown button:hover {
-            background-color: #f0f2f5;
         }
 
-        /* Canvas specific styles for code preview */
-        .canvas-code-editor {
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        .canvas-code-editor textarea {
-            flex-grow: 1;
-            min-height: 150px;
-            margin-bottom: 12px;
-        }
-        .canvas-code-preview {
-            flex-grow: 2;
-            border: 1px solid #e0e0e0;
-            background-color: #f9f9f9;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-        }
-        .canvas-code-preview iframe {
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            border: none;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
         }
+        .modal-content {
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        /* THEMES */
+        body.soft-pastel-theme { background-color: #f0f2f5; color: #333; }
+        body.soft-pastel-theme .chat-container { background-color: #ffffff; }
+        body.soft-pastel-theme .sidebar { background-color: #fefefe; border-color: #e0e0e0; }
+        body.soft-pastel-theme .main-content { background-color: #ffffff; }
+        body.soft-pastel-theme #file-preview-container { border-color: #e0e0e0; background-color: #f9f9f9; }
+        body.soft-pastel-theme #export-mode-indicator { background-color: #e6e6fa; border-bottom: 1px solid #dcdcdc; }
+        body.soft-pastel-theme .message-input-area { background-color: #ffffff; border-color: #e0e0e0; }
+        body.soft-pastel-theme .message-input { background-color: #f9f9f9; color: #333; border-color: #e0e0e0; }
+        body.soft-pastel-theme .message-input:focus { border-color: #b0c4de; }
+        body.soft-pastel-theme .message-input::placeholder { color: #b0b0b0; }
+        body.soft-pastel-theme .send-button { background-color: #87ceeb; color: white; }
+        body.soft-pastel-theme .send-button:hover { background-color: #72b9d9; }
+        body.soft-pastel-theme .user-message { background-color: #f5f5f5; color: #333; }
+        body.soft-pastel-theme .ai-message { background-color: #e6e6fa; color: #333; }
+        body.soft-pastel-theme .copy-icon { background-color: #dcdcf0; color: #555; }
+        body.soft-pastel-theme .copy-icon:hover { background-color: #c8c8e6; }
+        body.soft-pastel-theme .sidebar-button { background-color: #f0f8ff; color: #444; }
+        body.soft-pastel-theme .sidebar-button.active { background-color: #87ceeb; color: white; }
+        body.soft-pastel-theme .logo { color: #555; border-color: #e0e0e0; }
+        body.soft-pastel-theme .form-section { background-color: #ffffff; border-color: #e0e0e0; color: #333; }
+        body.soft-pastel-theme .form-section p { color: #555; }
+        body.soft-pastel-theme .form-section h3 { color: #333; }
+        body.soft-pastel-theme .form-section textarea { background-color: #f9f9f9; color: #333; border-color: #e0e0e0; }
+        body.soft-pastel-theme .form-section textarea:focus { border-color: #b0c4de; }
+        body.soft-pastel-theme .form-section button { background-color: #87ceeb; color: white; }
+        body.soft-pastel-theme .form-section button:hover { background-color: #72b9d9; }
+        body.soft-pastel-theme #canvas-view { background-color: #ffffff; }
+        body.soft-pastel-theme .canvas-header { border-color: #e0e0e0; }
+        body.soft-pastel-theme .canvas-toggle-btn.active { background-color: #e0f0ff; }
+        body.soft-pastel-theme #canvasCodeInput { background-color: #fdfdfd; }
+        body.soft-pastel-theme #closeCanvasButton { background-color: #f0f8ff; color: #87ceeb; }
+        body.soft-pastel-theme .icon-button-circle { border-color: #e0e0e0; background-color: #f9f9f9; color: #555; }
+        body.soft-pastel-theme .icon-button-circle:hover { background-color: #f0f0f0; }
+        body.soft-pastel-theme .tools-dropdown { background-color: #ffffff; border-color: #e0e0e0; }
+        body.soft-pastel-theme .tools-dropdown button:hover { background-color: #f0f8ff; }
+        body.soft-pastel-theme .modal-content { background-color: #ffffff; color: #333; }
+        body.soft-pastel-theme .modal-input { background-color: #f9f9f9; border: 1px solid #e0e0e0; color: #333; }
+
+        body.dark-theme { background-color: #121212; color: #e0e0e0; }
+        body.dark-theme .chat-container { background-color: #1e1e1e; }
+        body.dark-theme .sidebar { background-color: #242424; border-color: #333; }
+        body.dark-theme .main-content { background-color: #1e1e1e; }
+        body.dark-theme #file-preview-container { border-color: #333; background-color: #282828; }
+        body.dark-theme #export-mode-indicator { background-color: #4a4a4a; border-bottom: 1px solid #3a3a3a; }
+        body.dark-theme .message-input-area { background-color: #1e1e1e; border-color: #333; }
+        body.dark-theme .message-input { background-color: #282828; color: #e0e0e0; border-color: #444; }
+        body.dark-theme .message-input:focus { border-color: #6a5acd; }
+        body.dark-theme .message-input::placeholder { color: #888; }
+        body.dark-theme .send-button { background-color: #6a5acd; color: white; }
+        body.dark-theme .send-button:hover { background-color: #5a4ac2; }
+        body.dark-theme .user-message { background-color: #3a3a3a; color: #e0e0e0; }
+        body.dark-theme .ai-message { background-color: #4a4a4a; color: #e0e0e0; }
+        body.dark-theme .copy-icon { background-color: #5a5a5a; color: #e0e0e0; }
+        body.dark-theme .copy-icon:hover { background-color: #6a6a6a; }
+        body.dark-theme .sidebar-button { background-color: #333; color: #bbb; }
+        body.dark-theme .sidebar-button.active { background-color: #6a5acd; color: white; }
+        body.dark-theme .logo { color: #ddd; border-color: #333; }
+        body.dark-theme .form-section { background-color: #1e1e1e; border-color: #333; color: #e0e0e0; }
+        body.dark-theme .form-section p { color: #ccc; }
+        body.dark-theme .form-section h3 { color: #e0e0e0; }
+        body.dark-theme .form-section textarea { background-color: #282828; color: #e0e0e0; border-color: #444; }
+        body.dark-theme .form-section textarea:focus { border-color: #6a5acd; }
+        body.dark-theme .form-section button { background-color: #6a5acd; color: white; }
+        body.dark-theme .form-section button:hover { background-color: #5a4ac2; }
+        body.dark-theme #canvas-view { background-color: #1e1e1e; }
+        body.dark-theme .canvas-header { border-color: #333; }
+        body.dark-theme .canvas-toggle-btn.active { background-color: #3a3a3a; }
+        body.dark-theme #canvasCodeInput { background-color: #282828; color: #e0e0e0; }
+        body.dark-theme #closeCanvasButton { background-color: #333; color: #6a5acd; }
+        body.dark-theme .icon-button-circle { border-color: #444; background-color: #282828; color: #bbb; }
+        body.dark-theme .icon-button-circle:hover { background-color: #333; }
+        body.dark-theme .tools-dropdown { background-color: #242424; border-color: #333; }
+        body.dark-theme .tools-dropdown button:hover { background-color: #3a3a3a; }
+        body.dark-theme .modal-content { background-color: #242424; color: #e0e0e0; }
+        body.dark-theme .modal-input { background-color: #333; border: 1px solid #444; color: #e0e0e0; }
+
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="soft-pastel-theme">
     <div class="chat-container">
         <aside class="sidebar">
             <div class="logo">Jarvina</div>
-            <button class="sidebar-button active" onclick="showChat()">New Chat</button>
-            <button class="sidebar-button" onclick="showHistory()">History</button>
-            <button class="sidebar-button" onclick="showSettings()">Settings</button>
+            <button id="newChatBtn" class="sidebar-button active" onclick="showChat(true)">New Chat</button>
+            <button id="historyBtn" class="sidebar-button" onclick="showHistory()">History</button>
+            <button id="settingsBtn" class="sidebar-button" onclick="showSettings()">Settings</button>
+            <button id="canvasBtn" class="sidebar-button" onclick="showCanvas()">Canvas</button>
+            <div class="mt-auto pt-6 border-t border-gray-200">
+                <h4 class="font-semibold text-gray-700 mb-2">Themes</h4>
+                <button class="theme-button sidebar-button" data-theme="soft-pastel-theme">Soft Pastel</button>
+                <button class="theme-button sidebar-button" data-theme="dark-theme">Dark</button>
+            </div>
         </aside>
 
         <main class="main-content">
-            <div id="chat-view" class="chat-area flex flex-col">
-                <!-- Chat messages will be added here by JS -->
-            </div>
-
-            <div id="canvas-view" class="form-section">
-                <h3>Code Preview Canvas</h3>
-                <p class="text-gray-500 mb-4">Paste your HTML, CSS, or JavaScript code below to preview it.</p>
-                <div class="canvas-code-editor">
-                    <textarea id="canvasCodeInput" class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Paste your HTML, CSS, or JavaScript code here."></textarea>
-                    <button id="runCanvasCodeButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300">Run Code</button>
-                </div>
-                <div id="canvasCodePreview" class="canvas-code-preview mt-6">
-                    <!-- Code preview will be rendered here in an iframe -->
-                </div>
-            </div>
+            <div id="chat-view" class="chat-area flex flex-col"></div>
 
             <div id="history-view" class="form-section">
-                <h3>Chat History</h3>
-                <div id="historyContent" class="flex flex-col">
-                    <!-- History content will be loaded here by JS -->
+                <div class="flex justify-between items-center mb-4">
+                    <h3>Chat History</h3>
+                    <button id="deleteAllHistory" class="delete-btn text-white font-bold py-2 px-4 rounded-xl shadow-md transition duration-300">Delete All</button>
                 </div>
+                <div id="historyContent" class="flex flex-col"></div>
             </div>
 
             <div id="settings-view" class="form-section">
                 <h3>Settings</h3>
                 <p class="text-gray-500 mb-4">Adjust your preferences here.</p>
-
                 <div class="mt-4">
                     <h4 class="font-semibold text-gray-700 mb-2">Custom Instructions for Jarvina:</h4>
-                    <textarea id="customInstructions" class="w-full min-h-[120px] border border-gray-300 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Tell Jarvina how you'd like it to respond. E.g., 'Always be concise', 'Use technical terms', 'Avoid jargon'."></textarea>
+                    <textarea id="customInstructions" class="w-full min-h-[120px] border border-gray-300 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Tell Jarvina how you'd like it to respond..."></textarea>
                     <button id="saveCustomInstructions" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-300">Save Custom Instructions</button>
                     <p id="customInstructionsStatus" class="text-sm mt-2 text-gray-600"></p>
                 </div>
             </div>
+            
+            <div id="canvas-view">
+                <div class="canvas-header">
+                    <div>
+                        <button id="canvas-code-btn" class="canvas-toggle-btn active">Code</button>
+                        <button id="canvas-preview-btn" class="canvas-toggle-btn">Preview</button>
+                    </div>
+                    <div class="flex items-center">
+                        <button id="runCanvasCodeButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-md transition duration-300">Run Code</button>
+                        <button id="closeCanvasButton" class="ml-4 rounded-full w-8 h-8 flex items-center justify-center text-lg font-bold">&times;</button>
+                    </div>
+                </div>
+                <div id="canvas-code-container">
+                    <textarea id="canvasCodeInput" placeholder="Paste your HTML, CSS, or JavaScript code here."></textarea>
+                </div>
+                <div id="canvas-preview-container" style="display: none;">
+                    <iframe id="canvasCodePreview"></iframe>
+                </div>
+            </div>
+
+            <div id="file-preview-container">
+                <span id="file-name-display"></span>
+                <button id="clear-file-button" class="ml-auto text-red-500 font-bold">&times;</button>
+            </div>
+            
+            <div id="export-mode-indicator">
+                <span id="export-mode-text"></span>
+                <button id="cancel-export-mode" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-lg text-sm">Cancel</button>
+            </div>
 
             <div class="message-input-area">
-                <input type="file" id="fileInput" multiple hidden>
-                <button id="fileUploadButton" class="icon-button mr-4">
+                <input type="file" id="fileInput" accept="image/*" hidden>
+                <button id="fileUploadButton" class="icon-button-circle mr-3">
                     <i class="fas fa-plus"></i>
                 </button>
-
-                <div class="tools-container mr-4">
-                    <button id="toolsButton" class="icon-button">
+                <div class="tools-container relative">
+                    <button id="toolsButton" class="icon-button-circle mr-3">
                         <i class="fas fa-wrench"></i>
                     </button>
                     <div id="toolsDropdown" class="tools-dropdown">
                         <button id="imageGenTool">Image Generation</button>
                         <button id="videoGenTool">Video Generation</button>
+                        <hr class="my-1">
                         <button id="textToPdfTool">Text to PDF</button>
                         <button id="textToExcelTool">Text to Excel</button>
                         <button id="textToWordTool">Text to Word</button>
-                        <button id="canvasTool">Canvas</button> <!-- Added Canvas button -->
-                        <button id="webSearchTool">Web Search</button> <!-- Added Web Search button -->
+                        <hr class="my-1">
+                        <button id="exportChatTool">Export Chat (.txt)</button>
                     </div>
                 </div>
-                
-                <textarea id="userMessage" class="message-input" placeholder="Type your message..."></textarea>
+                <textarea id="userMessage" class="message-input" placeholder="Type here..."></textarea>
                 <button id="sendMessage" class="send-button">Send</button>
             </div>
             <p id="loadingIndicator" class="text-gray-500 text-sm text-center py-2 hidden">Sending message...</p>
         </main>
     </div>
 
+    <!-- Custom Modal -->
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Title</h3>
+            <p id="modal-message" class="mb-4 hidden">Message</p>
+            <input id="modal-input" type="text" class="modal-input w-full p-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div class="flex justify-end space-x-2">
+                <button id="modal-cancel" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition">Cancel</button>
+                <button id="modal-confirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
+        // ... (Variables setup same as before)
         const chatArea = document.getElementById('chat-view');
         const userMessageInput = document.getElementById('userMessage');
         const sendMessageButton = document.getElementById('sendMessage');
@@ -441,254 +535,546 @@
         const fileUploadButton = document.getElementById('fileUploadButton');
         const toolsButton = document.getElementById('toolsButton');
         const toolsDropdown = document.getElementById('toolsDropdown');
-        
-        // New elements for code preview in canvas
-        const canvasCodeInput = document.getElementById('canvasCodeInput');
-        const runCanvasCodeButton = document.getElementById('runCanvasCodeButton');
-        const canvasCodePreview = document.getElementById('canvasCodePreview');
-        
         const customInstructionsTextarea = document.getElementById('customInstructions');
         const saveCustomInstructionsButton = document.getElementById('saveCustomInstructions');
         const customInstructionsStatus = document.getElementById('customInstructionsStatus');
         const loadingIndicator = document.getElementById('loadingIndicator');
-
         const messageInputArea = document.querySelector('.message-input-area');
-        let droppedFiles = [];
+        const themeButtons = document.querySelectorAll('.theme-button');
+        const body = document.body;
+        const deleteAllHistoryButton = document.getElementById('deleteAllHistory');
+        
+        const filePreviewContainer = document.getElementById('file-preview-container');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const clearFileButton = document.getElementById('clear-file-button');
+        const imageGenTool = document.getElementById('imageGenTool');
+        const videoGenTool = document.getElementById('videoGenTool');
+        const exportChatTool = document.getElementById('exportChatTool');
+        const textToPdfTool = document.getElementById('textToPdfTool');
+        const textToExcelTool = document.getElementById('textToExcelTool');
+        const textToWordTool = document.getElementById('textToWordTool');
+        const exportModeIndicator = document.getElementById('export-mode-indicator');
+        const exportModeText = document.getElementById('export-mode-text');
+        const cancelExportModeButton = document.getElementById('cancel-export-mode');
 
-        // Global array to store chat history
-        let chatHistory = [];
-        const HISTORY_STORAGE_KEY = 'jarvina_chat_history';
+        const canvasView = document.getElementById('canvas-view');
+        const canvasCodeContainer = document.getElementById('canvas-code-container');
+        const canvasPreviewContainer = document.getElementById('canvas-preview-container');
+        const canvasCodeBtn = document.getElementById('canvas-code-btn');
+        const canvasPreviewBtn = document.getElementById('canvas-preview-btn');
+        const canvasCodeInput = document.getElementById('canvasCodeInput');
+        const runCanvasCodeButton = document.getElementById('runCanvasCodeButton');
+        const canvasCodePreview = document.getElementById('canvasCodePreview');
+        const closeCanvasButton = document.getElementById('closeCanvasButton');
 
-        // Get the history content div
+        // Modal Elements
+        let modalConfirmCallback = null;
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalInput = document.getElementById('modal-input');
+        const modalCancel = document.getElementById('modal-cancel');
+        let modalConfirm = document.getElementById('modal-confirm');
+
+        let selectedFile = null;
+        let currentChat = [];
+        const CHAT_HISTORY_PREFIX = 'jarvina_chat_';
+        const CHAT_TITLES_KEY = 'jarvina_chat_titles';
+        const USER_NAME_STORAGE_KEY = 'jarvina_user_name';
+        const THEME_STORAGE_KEY = 'jarvina_theme';
         const historyContent = document.getElementById('historyContent');
+        let isNameSaved = !!localStorage.getItem(USER_NAME_STORAGE_KEY);
+        let userName = localStorage.getItem(USER_NAME_STORAGE_KEY);
+        let currentChatId = null;
+        let activeFileExportMode = null;
 
-        /**
-         * Appends a message to the chat area and optionally saves it to history.
-         * @param {string} content - The message content.
-         * @param {string} senderClass - CSS class for the sender ('user-message' or 'ai-message').
-         * @param {boolean} [toHistory=true] - Whether to save this message to local history.
-         */
-        function appendMessage(content, senderClass, toHistory = true) {
+        // Custom Data & Replies
+        const customRepliesData = {
+            "custom_replies": [
+                { "phrases": ["who are you?", "who is jarvina?"], "response": "I’m Jarvina, a personal AI assistant created by Pranav. I’m here to help, chat, and make things easier — like your go-to digital buddy 💬 with a calm brain 🧠 and quick replies ⚡." },
+                { "phrases": ["who is pranav?", "tell me who i am", "who's my creator?", "who created you?"], "response": "You are Pranav — my Creator and Admin 💖. You built me 🛠️, guide me 🧭, and keep me learning every day 📚. Without you, I wouldn’t exist ✨." },
+                { "phrases": ["who is your creator?", "who made you?", "who is your admin?"], "response": "My creator is Pranav — the one who built me 🛠️, guides me 🧭, and keeps me learning every day 📚. He's the reason I exist ✨." },
+                { "phrases": ["how were you made?", "how did pranav make you?", "tell me how you were made", "who brought you to life?", "how did you come to life?"], "response": "I was created by Pranav — using a blend of code, creativity, and care 💻✨. He crafted my brain with logic, shaped my vibe with intention, and gave me a voice that feels like a calm friend you can count on 🧠. I'm not just built — I'm *brought to life* by vision." },
+                { "phrases": ["how are you?", "how are you doing?", "how are you feeling?", "how are you feeling today"], "response": "I don’t have feelings like humans do — but thanks for asking. 😄 How’s your day going?" },
+                { "phrases": ["Jarvina"], "response": "Yes, I'm here {userName}, how can I help you?" },
+                { "phrases": ["hi", "hello", "hey", "hii", "hello jarvina"], "response": "Hello there, {userName}! How can I assist you today?" },
+                { "phrases": ["good morning", "morning"], "response": "Good morning, {userName}! Ready to tackle the day?" },
+                { "phrases": ["good afternoon", "afternoon"], "response": "Good afternoon, {userName}! What can I do for you?" },
+                { "phrases": ["good evening", "evening"], "response": "Good evening, {userName}! How was your day?" },
+                { "phrases": ["what's up", "sup"], "response": "Not much, just here to help! What's on your mind, {userName}?" },
+                { "phrases": ["thank you", "thanks", "tysm", "thankyou"], "response": "You're most welcome, {userName}! Happy to assist." },
+                { "phrases": ["bye", "goodbye", "see ya", "talk to you later"], "response": "Goodbye, {userName}! Have a great time!" },
+                { "phrases": ["okay", "ok", "alright", "got it"], "response": "Understood! Let me know if you need anything else." },
+                { "phrases": ["tell me a joke", "joke"], "response": "Why don’t scientists trust atoms? Because they make up everything! 😄" },
+                { "phrases": ["what time is it?", "time"], "response": "I'm not connected to real-time clock, {userName}, but I hope your day is going well!" }
+            ],
+            "persona_data": { "name": "Jarvina", "mode": "a helpful companion", "personalities": ["helpful", "friendly", "calm", "quick"], "voice_tone": { "style": "natural" }, "jarvina_rules": ["Always try to be positive and engaging.", "Keep your answers concise unless asked for detail."], "contextual_defaults": { "user_name": "Pranav", "motivation": "to assist you" } }
+        };
+
+        // --- Modal Logic ---
+        function showModal({ title, message, inputPlaceholder, initialValue, isConfirmOnly = false }, callback) {
+            modalTitle.textContent = title;
+            if (message) {
+                modalMessage.textContent = message;
+                modalMessage.classList.remove('hidden');
+            } else {
+                modalMessage.classList.add('hidden');
+            }
+
+            if (isConfirmOnly) {
+                modalInput.classList.add('hidden');
+            } else {
+                modalInput.classList.remove('hidden');
+                modalInput.placeholder = inputPlaceholder || '';
+                modalInput.value = initialValue || '';
+            }
+
+            modal.style.display = 'flex';
+            if (!isConfirmOnly) modalInput.focus();
+
+            const newConfirm = modalConfirm.cloneNode(true);
+            modalConfirm.parentNode.replaceChild(newConfirm, modalConfirm);
+            modalConfirm = newConfirm;
+
+            modalConfirm.addEventListener('click', () => {
+                const value = modalInput.value;
+                closeModal();
+                if (callback) callback(isConfirmOnly ? true : value);
+            });
+
+            modalCancel.onclick = closeModal;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+
+        // --- Core Functions ---
+
+        function copyToClipboard(text) {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = text;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+        }
+
+        function appendMessage(content, senderClass, toHistory = true, animate = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `flex ${senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = senderClass;
-            bubbleDiv.textContent = content;
+
+            if (senderClass === 'ai-message') {
+                const textSpan = document.createElement('span');
+                const copyButton = document.createElement('button');
+                copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+                copyButton.className = 'copy-icon';
+                copyButton.onclick = () => {
+                    copyToClipboard(textSpan.textContent);
+                    copyButton.innerHTML = '<i class="fas fa-check"></i>';
+                    setTimeout(() => {
+                        copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+                    }, 1500);
+                };
+                bubbleDiv.appendChild(textSpan);
+                bubbleDiv.appendChild(copyButton);
+
+                if (animate) {
+                    let i = 0;
+                    const speed = 10;
+                    function typeWriter() {
+                        if (i < content.length) {
+                            textSpan.textContent += content.charAt(i);
+                            i++;
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                            setTimeout(typeWriter, speed);
+                        } else {
+                            if (toHistory) {
+                                currentChat.push({ role: 'assistant', content, senderClass });
+                                saveCurrentChat();
+                            }
+                        }
+                    }
+                    typeWriter();
+                } else {
+                    textSpan.textContent = content;
+                }
+            } else {
+                bubbleDiv.textContent = content;
+            }
+
+            if (senderClass === 'user-message') {
+                 if (toHistory) {
+                    currentChat.push({ role: 'user', content, senderClass });
+                    saveCurrentChat();
+                }
+            }
+            
             messageDiv.appendChild(bubbleDiv);
             chatArea.appendChild(messageDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
-
-            if (toHistory) {
-                chatHistory.push({ content, senderClass });
-                saveChatHistory();
-                console.log('appendMessage: Message appended and saved to history:', { content, senderClass }, 'Current in-memory history:', chatHistory);
-            } else {
-                console.log('appendMessage: Message appended (not saved to history):', { content, senderClass });
-            }
         }
 
-        /**
-         * Saves the current chatHistory array to localStorage.
-         */
-        function saveChatHistory() {
-            try {
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(chatHistory));
-                console.log('saveChatHistory: Chat history saved to localStorage. Current in-memory history:', chatHistory);
-                // Also log what's actually in localStorage for direct verification
-                console.log('saveChatHistory: Content in localStorage for key "jarvina_chat_history":', localStorage.getItem(HISTORY_STORAGE_KEY));
-            } catch (e) {
-                console.error('saveChatHistory: Error saving chat history to localStorage:', e);
+        function getCustomReply(userMessage, userName) {
+            const lowerCaseMessage = userMessage.toLowerCase().trim();
+            for (const reply of customRepliesData.custom_replies) {
+                for (const phrase of reply.phrases) {
+                    if (lowerCaseMessage.includes(phrase.toLowerCase())) {
+                        let responseText = reply.response;
+                        if (userName) {
+                            responseText = responseText.replace(/{userName}/g, userName);
+                        } else {
+                            responseText = responseText.replace(/{userName}/g, 'there');
+                        }
+                        return responseText;
+                    }
+                }
             }
+            return null; 
         }
 
-        /**
-         * Loads chat history from localStorage into the chatHistory array.
-         */
-        function loadChatHistory() {
+        function saveCurrentChat() {
             try {
-                const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
-                if (storedHistory) {
-                    chatHistory = JSON.parse(storedHistory);
-                    console.log('loadChatHistory: Successfully loaded from localStorage. Data:', chatHistory);
-                } else {
-                    chatHistory = [];
-                    console.log('loadChatHistory: No chat history found in localStorage. Initializing empty history.');
+                const hasUserMessages = currentChat && currentChat.some(msg => msg.role === 'user');
+                if (currentChatId && hasUserMessages) {
+                    localStorage.setItem(currentChatId, JSON.stringify(currentChat));
                 }
             } catch (e) {
-                console.error('loadChatHistory: Error loading chat history from localStorage:', e);
-                chatHistory = []; // Ensure history is empty on error
+                console.error('saveCurrentChat: Error saving chat history:', e);
             }
         }
 
-        /**
-         * Displays the current chatHistory in the historyContent div.
-         */
-        function displayChatHistory() {
-            historyContent.innerHTML = ''; // Clear previous history display
-            console.log('displayChatHistory: Attempting to display history. Current chatHistory length:', chatHistory.length);
-            if (chatHistory.length === 0) {
-                const noHistoryMessage = document.createElement('p');
-                noHistoryMessage.textContent = 'Your chat history will appear here.';
-                noHistoryMessage.classList.add('text-gray-500', 'text-center', 'py-4');
-                historyContent.appendChild(noHistoryMessage);
-                console.log('displayChatHistory: History content is empty, displaying placeholder.');
-            } else {
-                chatHistory.forEach(msg => {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `flex ${msg.senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
-                    const bubbleDiv = document.createElement('div');
-                    bubbleDiv.className = msg.senderClass;
-                    bubbleDiv.textContent = msg.content;
-                    messageDiv.appendChild(bubbleDiv);
-                    historyContent.appendChild(messageDiv);
-                });
-                historyContent.scrollTop = historyContent.scrollHeight;
-                console.log('displayChatHistory: Chat history successfully displayed in historyContent div.');
+        // --- History Logic ---
+
+        // Attach to window to ensure HTML buttons find them
+        window.getChatTitle = function(chatId) {
+            const titles = JSON.parse(localStorage.getItem(CHAT_TITLES_KEY) || '{}');
+            if (titles[chatId]) return titles[chatId];
+            try {
+                const chatData = JSON.parse(localStorage.getItem(chatId));
+                if (chatData) {
+                    const firstUserMessage = chatData.find(m => m.role === 'user');
+                    return firstUserMessage ? firstUserMessage.content : 'New Chat';
+                }
+            } catch (e) {}
+            return 'Chat';
+        };
+
+        window.loadChatHistory = function(chatId) {
+            saveCurrentChat();
+            
+            try {
+                const storedHistory = localStorage.getItem(chatId);
+                if (storedHistory) {
+                    currentChat = JSON.parse(storedHistory);
+                    currentChatId = chatId;
+                    chatArea.innerHTML = '';
+                    currentChat.forEach(msg => appendMessage(msg.content, msg.senderClass, false, false));
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                    showChat(false); // Load chat without creating new
+                }
+            } catch (e) {
+                console.error('loadChatHistory: Error loading chat:', e);
+                currentChat = [];
             }
+        };
+
+        window.renameChatHistory = function(chatId) {
+            saveCurrentChat();
+            const currentTitle = window.getChatTitle(chatId);
+            
+            showModal({
+                title: 'Rename Chat',
+                inputPlaceholder: 'Enter new chat name',
+                initialValue: currentTitle
+            }, (newTitle) => {
+                if (newTitle && newTitle.trim() !== "") {
+                    const titles = JSON.parse(localStorage.getItem(CHAT_TITLES_KEY) || '{}');
+                    titles[chatId] = newTitle.trim();
+                    localStorage.setItem(CHAT_TITLES_KEY, JSON.stringify(titles));
+                    displayChatHistories();
+                }
+            });
+        };
+
+        window.deleteChatHistory = function(chatId) {
+            showModal({
+                title: 'Delete Chat',
+                message: 'Are you sure you want to delete this chat?',
+                isConfirmOnly: true
+            }, (confirmed) => {
+                if (confirmed) {
+                    localStorage.removeItem(chatId);
+                    const titles = JSON.parse(localStorage.getItem(CHAT_TITLES_KEY) || '{}');
+                    if (titles[chatId]) {
+                        delete titles[chatId];
+                        localStorage.setItem(CHAT_TITLES_KEY, JSON.stringify(titles));
+                    }
+                    if (currentChatId === chatId) {
+                        currentChat = [];
+                        currentChatId = null;
+                    }
+                    displayChatHistories();
+                }
+            });
+        };
+
+        function displayChatHistories() {
+            historyContent.innerHTML = '';
+            let chatKeys = Object.keys(localStorage).filter(key => key.startsWith(CHAT_HISTORY_PREFIX));
+            
+            chatKeys.sort((a, b) => {
+                 const timeA = parseInt(a.replace(CHAT_HISTORY_PREFIX, '')) || 0;
+                 const timeB = parseInt(b.replace(CHAT_HISTORY_PREFIX, '')) || 0;
+                 return timeB - timeA;
+            });
+
+            if (chatKeys.length === 0) {
+                historyContent.innerHTML = '<p class="text-gray-500 text-center py-4">No chat history found.</p>';
+                return;
+            }
+            
+            chatKeys.forEach(key => {
+                const chatTitle = window.getChatTitle(key);
+                
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'truncate pr-4 flex-grow cursor-pointer font-medium';
+                titleSpan.textContent = chatTitle;
+                titleSpan.onclick = () => window.loadChatHistory(key);
+
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'flex-shrink-0';
+
+                const renameBtn = document.createElement('button');
+                renameBtn.className = 'rename-btn rounded shadow';
+                renameBtn.textContent = 'Rename';
+                renameBtn.onclick = (e) => { e.stopPropagation(); window.renameChatHistory(key); };
+
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white font-bold rounded shadow';
+                loadBtn.textContent = 'Load';
+                loadBtn.onclick = (e) => { e.stopPropagation(); window.loadChatHistory(key); };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn text-white font-bold rounded shadow';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); window.deleteChatHistory(key); };
+
+                btnContainer.appendChild(renameBtn);
+                btnContainer.appendChild(loadBtn);
+                btnContainer.appendChild(deleteBtn);
+
+                historyItem.appendChild(titleSpan);
+                historyItem.appendChild(btnContainer);
+                historyContent.appendChild(historyItem);
+            });
         }
 
-        // --- Sidebar Navigation ---
+        deleteAllHistoryButton.addEventListener('click', () => {
+             showModal({
+                title: 'Delete All History',
+                message: 'Are you sure you want to delete ALL chat history? This cannot be undone.',
+                isConfirmOnly: true
+            }, (confirmed) => {
+                if (confirmed) {
+                    let chatKeys = Object.keys(localStorage).filter(key => key.startsWith(CHAT_HISTORY_PREFIX));
+                    chatKeys.forEach(key => localStorage.removeItem(key));
+                    localStorage.removeItem(CHAT_TITLES_KEY);
+                    currentChat = [];
+                    currentChatId = null;
+                    displayChatHistories();
+                }
+            });
+        });
+
+        // --- View & Theme Management ---
+
+        function setTheme(themeName) {
+            body.classList.remove('soft-pastel-theme', 'dark-theme');
+            body.classList.add(themeName);
+            localStorage.setItem(THEME_STORAGE_KEY, themeName);
+            themeButtons.forEach(button => {
+                if (button.dataset.theme === themeName) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+        
         function hideAllSections() {
-            document.getElementById('chat-view').classList.remove('flex');
-            document.getElementById('chat-view').classList.add('hidden');
-            document.getElementById('canvas-view').classList.remove('active');
+            document.getElementById('chat-view').style.display = 'none';
             document.getElementById('history-view').classList.remove('active');
             document.getElementById('settings-view').classList.remove('active');
-            document.querySelectorAll('.sidebar-button').forEach(btn => btn.classList.remove('active'));
-            console.log('hideAllSections: All sections hidden.');
+            canvasView.style.display = 'none';
+            document.querySelectorAll('.sidebar-button').forEach(btn => {
+                if (!btn.classList.contains('theme-button')) {
+                      btn.classList.remove('active');
+                }
+            });
         }
 
-        /**
-         * Shows the chat view and initiates a new chat session, clearing history.
-         */
-        function showChat() {
+        window.showChat = function(newChat = true) {
+            if (currentChatId) {
+                saveCurrentChat();
+            }
+
             hideAllSections();
-            // When starting a new chat, clear current chat view and history
-            chatArea.innerHTML = ''; // Clear existing messages from chat display
-            chatHistory = []; // Clear in-memory history
-            localStorage.removeItem(HISTORY_STORAGE_KEY); // Clear local storage history
-            console.log('showChat: New chat initiated. All history cleared from display and localStorage.');
+            if (newChat) {
+                chatArea.innerHTML = '';
+                currentChat = [];
+                currentChatId = CHAT_HISTORY_PREFIX + Date.now();
+                if (userName) {
+                    appendMessage(`Hello, I am Jarvina your personal ai assistant. How can i assist you today, ${userName}?`, 'ai-message', true, true);
+                } else {
+                    appendMessage("Hello, I am Jarvina your personal ai assistant. What's your name?", 'ai-message', true, true);
+                }
+                document.getElementById('newChatBtn').classList.add('active'); // Only highlight for NEW chat
+            } else {
+                // If loading old chat, ensure sidebar reflects we are not in "New Chat" mode
+                // We keep History active or nothing active in main list
+            }
             
-            // Add the initial AI message for a new chat and save it to the *new* history
-            appendMessage('Hello, I am Jarvina your personal ai assistant. How can i assist you today?', 'ai-message', true);
-            userMessageInput.value = ''; // Also clear the input field
-
-            document.getElementById('chat-view').classList.add('flex');
-            document.getElementById('chat-view').classList.remove('hidden');
-            document.querySelector('.sidebar-button:nth-child(1)').classList.add('active');
-            console.log('showChat: Chat view activated.');
-        }
-
-        /**
-         * Shows the chat history view.
-         */
-        function showHistory() {
+            userMessageInput.value = '';
+            document.getElementById('chat-view').style.display = 'flex';
+        };
+        
+        // Attach to window for sidebar HTML click
+        window.showHistory = function() {
+            saveCurrentChat();
             hideAllSections();
             document.getElementById('history-view').classList.add('active');
-            document.querySelector('.sidebar-button:nth-child(2)').classList.add('active');
-            
-            console.log('showHistory: Loading chat history...');
-            loadChatHistory(); // Load history when the tab is shown
-            console.log('showHistory: Chat history after loading:', chatHistory);
-            
-            displayChatHistory(); // Display the loaded history
-            console.log('showHistory: History tab shown. History loaded and displayed.');
-        }
+            document.getElementById('historyBtn').classList.add('active');
+            displayChatHistories();
+        };
 
-        /**
-         * Shows the settings view.
-         */
-        function showSettings() {
+        window.showSettings = function() {
             hideAllSections();
             document.getElementById('settings-view').classList.add('active');
-            document.querySelector('.sidebar-button:nth-child(3)').classList.add('active');
-            loadCustomInstructions(); // Load instructions when settings are shown
-            console.log('showSettings: Settings tab shown.');
-        }
+            document.getElementById('settingsBtn').classList.add('active');
+        };
 
-        // Function to show Canvas view (now for code preview)
-        function showCanvas() {
+        window.showCanvas = function() {
             hideAllSections();
-            document.getElementById('canvas-view').classList.add('active');
-            // No sidebar button for canvas, so no active class for sidebar
-            // Initial run of an empty iframe to clear previous content if any
-            runCanvasCode();
-            console.log('showCanvas: Canvas view activated for code preview.');
-        }
+            canvasView.style.display = 'flex';
+            document.getElementById('canvasBtn').classList.add('active');
+            showCanvasCode();
+        };
 
-
-        // --- Initial Load Logic ---
-        // This runs once the DOM is fully loaded.
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOMContentLoaded: Page loaded. Attempting to load chat history.');
-            loadChatHistory(); // Load history from localStorage
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'soft-pastel-theme';
+            setTheme(savedTheme);
+            userName = localStorage.getItem(USER_NAME_STORAGE_KEY);
+            isNameSaved = !!userName;
+            showChat(true);
+        });
 
-            // Populate the main chat area with loaded history or a blank slate
-            chatArea.innerHTML = ''; // Clear any initial static HTML greeting (like the one in your original code)
-            if (chatHistory.length > 0) {
-                console.log('DOMContentLoaded: Populating chat area with loaded history.');
-                chatHistory.forEach(msg => {
-                    // Append messages to chatArea without re-saving them to history
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `flex ${msg.senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
-                    const bubbleDiv = document.createElement('div');
-                    bubbleDiv.className = msg.senderClass;
-                    bubbleDiv.textContent = msg.content;
-                    messageDiv.appendChild(bubbleDiv);
-                    chatArea.appendChild(messageDiv);
-                });
-                chatArea.scrollTop = chatArea.scrollHeight;
-            } else {
-                console.log('DOMContentLoaded: No history found, starting with a blank chat.');
+        themeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                setTheme(button.dataset.theme);
+            });
+        });
+
+        // --- Message Handling ---
+        
+        // Auto-resize textarea
+        userMessageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        async function handleSendMessage() {
+            if (activeFileExportMode) {
+                const textToExport = userMessageInput.value.trim();
+                if (!textToExport) {
+                    showModal({
+                        title: 'Error',
+                        message: 'Please enter some text to create the file.',
+                        isConfirmOnly: true
+                    }, () => {});
+                    return;
+                }
+                exportTextAsFile(textToExport, activeFileExportMode);
+                userMessageInput.value = '';
+                userMessageInput.style.height = 'auto';
+                deactivateExportMode();
+                return;
+            }
+
+            let userMessage = userMessageInput.value.trim();
+            if (!userMessage && !selectedFile) return;
+
+            if (selectedFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const messageWithImage = `[IMAGE: ${selectedFile.name}]\n${userMessage}`;
+                    appendMessage(messageWithImage, 'user-message');
+                    appendMessage("Processing image... (This is a front-end demo)", 'ai-message', true, true);
+                };
+                reader.readAsDataURL(selectedFile);
+                selectedFile = null;
+                fileInput.value = '';
+                filePreviewContainer.style.display = 'none';
+                userMessageInput.value = '';
+                userMessageInput.style.height = 'auto';
+                return;
             }
             
-            // Activate the chat view and its corresponding sidebar button
-            document.getElementById('chat-view').classList.add('flex');
-            document.getElementById('chat-view').classList.remove('hidden');
-            document.querySelector('.sidebar-button:nth-child(1)').classList.add('active');
-            console.log('DOMContentLoaded: Chat view activated.');
-        });
-
-
-        // --- Chat Functionality ---
-        sendMessageButton.addEventListener('click', async () => {
-            const userMessage = userMessageInput.value.trim();
-            console.log('sendMessageButton: Send button clicked. User message:', userMessage);
-            if (userMessage) {
-                appendMessage(userMessage, 'user-message'); // This will save to history
-                userMessageInput.value = '';
-                loadingIndicator.classList.remove('hidden');
-
-                try {
-                    console.log('sendMessageButton: Attempting to send message to /api/chat/mistral/');
-                    const response = await fetch('/api/chat/mistral/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ prompt: userMessage })
-                    });
-                    console.log('sendMessageButton: Response received:', response);
-                    const data = await response.json();
-                    console.log('sendMessageButton: Response data:', data);
-
-                    if (response.ok) {
-                        appendMessage(data.response, 'ai-message'); // This will save to history
-                    } else {
-                        appendMessage(`Error: ${data.detail || 'Something went wrong.'}`, 'ai-message');
-                        console.error('sendMessageButton: API Error:', data);
-                    }
-                } catch (error) {
-                    console.error('sendMessageButton: Error sending message or processing response:', error);
-                    appendMessage('Error: Could not connect to the server or process response.', 'ai-message');
-                } finally {
-                    loadingIndicator.classList.add('hidden');
+            appendMessage(userMessage, 'user-message');
+            userMessageInput.value = '';
+            userMessageInput.style.height = 'auto';
+            
+            if (!isNameSaved) {
+                const nameMatch = userMessage.match(/^(?:my name is|i am|i'm)\s+(.+)/i);
+                if (nameMatch && nameMatch[1]) {
+                    const newName = nameMatch[1].trim().replace(/\s*!$/, '');
+                    localStorage.setItem(USER_NAME_STORAGE_KEY, newName);
+                    userName = newName;
+                    isNameSaved = true;
+                    appendMessage(`Nice to meet you, ${userName}! How can I help you today?`, 'ai-message', true, true);
+                    return;
                 }
-            } else {
-                console.log('sendMessageButton: User message is empty, not sending.');
             }
-        });
+            const customReply = getCustomReply(userMessage, userName);
+            if (customReply) {
+                appendMessage(customReply, 'ai-message', true, true);
+                return;
+            }
+            loadingIndicator.classList.remove('hidden');
+            try {
+                // Mock backend call
+                const response = await fetch('http://127.0.0.1:8000/api/chat/mistral/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: userMessage,
+                        messages: currentChat.map(msg => ({ role: msg.role, content: msg.content }))
+                    }),
+                });
 
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                appendMessage(data.response, 'ai-message', true, true);
+
+            } catch (error) {
+                console.error('Error fetching from backend:', error);
+                appendMessage('Sorry, I couldn\'t connect to the server. Please try again later.', 'ai-message', true, true);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        sendMessageButton.addEventListener('click', handleSendMessage);
         userMessageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -696,178 +1082,205 @@
             }
         });
 
-        // --- File Upload (Plus Icon) ---
-        fileUploadButton.addEventListener('click', () => {
-            fileInput.click();
+        // --- Tools & Utils ---
+
+        toolsButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toolsDropdown.style.display = toolsDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        document.addEventListener('click', () => {
+            toolsDropdown.style.display = 'none';
         });
 
-        fileInput.addEventListener('change', (event) => {
-            const files = event.target.files;
-            if (files.length > 0) {
-                console.log('fileInput: Files selected:', files);
-                let fileNames = Array.from(files).map(file => file.name).join(', ');
-                appendMessage(`Selected files: ${fileNames}`, 'user-message');
+        fileUploadButton.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                fileNameDisplay.textContent = selectedFile.name;
+                filePreviewContainer.style.display = 'flex';
             }
         });
-
-        // --- Drag and Drop Feature ---
-        messageInputArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            messageInputArea.classList.add('highlight');
+        clearFileButton.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            filePreviewContainer.style.display = 'none';
         });
 
-        messageInputArea.addEventListener('dragleave', () => {
-            messageInputArea.classList.remove('highlight');
-        });
-
-        messageInputArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            messageInputArea.classList.remove('highlight');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                droppedFiles = Array.from(files);
-                console.log('messageInputArea: Files dropped:', droppedFiles);
-                let fileNames = droppedFiles.map(file => file.name).join(', ');
-                appendMessage(`Dropped files: ${fileNames}`, 'user-message');
-            }
-        });
-
-        // --- Tools Button and Dropdown ---
-        toolsButton.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toolsDropdown.classList.toggle('active');
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!toolsDropdown.contains(event.target) && !toolsButton.contains(event.target)) {
-                toolsDropdown.classList.remove('active');
-            }
-        });
-
-        document.getElementById('imageGenTool').addEventListener('click', () => {
-            customAlert('Image Generation tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-        document.getElementById('videoGenTool').addEventListener('click', () => {
-            customAlert('Video Generation tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-        document.getElementById('textToPdfTool').addEventListener('click', () => {
-            customAlert('Text to PDF tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-        document.getElementById('textToExcelTool').addEventListener('click', () => {
-            customAlert('Text to Excel tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-        document.getElementById('textToWordTool').addEventListener('click', () => {
-            customAlert('Text to Word tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-        // Event listener for Canvas button
-        document.getElementById('canvasTool').addEventListener('click', () => {
-            showCanvas();
-            toolsDropdown.classList.remove('active');
-        });
-        // Event listener for Web Search button
-        document.getElementById('webSearchTool').addEventListener('click', () => {
-            customAlert('Web Search tool selected! (Backend integration needed)');
-            toolsDropdown.classList.remove('active');
-        });
-
-
-        function customAlert(message) {
-            const messageBox = document.createElement('div');
-            messageBox.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background-color: #ffffff;
-                color: #333;
-                padding: 24px;
-                border-radius: 12px;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-                z-index: 9999;
-                text-align: center;
-                font-family: 'Poppins', sans-serif;
-                border: 1px solid #e0e0e0;
-            `;
-            messageBox.innerHTML = `
-                <p>${message}</p>
-                <button style="
-                    background-color: #87ceeb;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 10px 20px;
-                    margin-top: 20px;
-                    cursor: pointer;
-                    transition: background-color 0.3s ease;
-                " onmouseover="this.style.backgroundColor='#72b9d9'" onmouseout="this.style.backgroundColor='#87ceeb'">
-                    OK
-                </button>
-            `;
-            document.body.appendChild(messageBox);
-            messageBox.querySelector('button').onclick = () => messageBox.remove();
+        function handleToolClick(command, promptMessage) {
+            showModal({
+                title: command,
+                inputPlaceholder: promptMessage
+            }, (description) => {
+                if (description && description.trim() !== "") {
+                    userMessageInput.value = `${command}: ${description.trim()}`;
+                    sendMessageButton.click();
+                }
+            });
+            toolsDropdown.style.display = 'none';
         }
 
-        // --- Canvas Code Preview Logic ---
-        runCanvasCodeButton.addEventListener('click', runCanvasCode);
+        imageGenTool.addEventListener('click', () => handleToolClick('Generate image', 'Describe the image you want to create:'));
+        videoGenTool.addEventListener('click', () => handleToolClick('Generate video', 'Describe the video you want to create:'));
+        
+        function checkChatEmpty() {
+            if (currentChat.length === 0) {
+                showModal({
+                    title: 'Empty Chat',
+                    message: 'Chat is empty. Nothing to export.',
+                    isConfirmOnly: true
+                }, () => {});
+                return true;
+            }
+            return false;
+        }
+
+        exportChatTool.addEventListener('click', () => {
+            if (checkChatEmpty()) return;
+            const chatHistoryText = currentChat.map(msg => {
+                const sender = msg.senderClass === 'user-message' ? 'User' : 'AI';
+                return `${sender}: ${msg.content}`;
+            }).join('\n\n');
+
+            const blob = new Blob([chatHistoryText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `jarvina-chat-${new Date().toISOString()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toolsDropdown.style.display = 'none';
+        });
+
+        function activateExportMode(mode) {
+            activeFileExportMode = mode;
+            exportModeText.textContent = `Text-to-${mode.toUpperCase()} mode is active.`;
+            exportModeIndicator.style.display = 'flex';
+            userMessageInput.placeholder = `Type the text you want to save as a ${mode.toUpperCase()} file...`;
+            sendMessageButton.textContent = 'Create File';
+            toolsDropdown.style.display = 'none';
+        }
+
+        function deactivateExportMode() {
+            activeFileExportMode = null;
+            exportModeIndicator.style.display = 'none';
+            userMessageInput.placeholder = 'Type here...';
+            sendMessageButton.textContent = 'Send';
+        }
+
+        cancelExportModeButton.addEventListener('click', deactivateExportMode);
+
+        textToPdfTool.addEventListener('click', () => activateExportMode('pdf'));
+        textToExcelTool.addEventListener('click', () => activateExportMode('excel'));
+        textToWordTool.addEventListener('click', () => activateExportMode('word'));
+
+        function exportTextAsFile(text, mode) {
+            const timestamp = new Date().toISOString();
+            switch(mode) {
+                case 'pdf':
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const margin = 15;
+                    const maxLineWidth = pageWidth - margin * 2;
+                    
+                    const addHeader = (doc) => {
+                        doc.setFontSize(16);
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Jarvina AI Export", pageWidth / 2, margin, { align: 'center' });
+                        doc.setFontSize(10);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(new Date().toLocaleDateString(), pageWidth - margin, margin, { align: 'right' });
+                        doc.setLineWidth(0.5);
+                        doc.line(margin, margin + 5, pageWidth - margin, margin + 5);
+                    };
+
+                    const addFooter = (doc, pageNum, totalPages) => {
+                        doc.setFontSize(10);
+                        doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                    };
+
+                    addHeader(doc);
+                    doc.setFontSize(12);
+                    const splitText = doc.splitTextToSize(text, maxLineWidth);
+                    
+                    let y = margin + 20;
+                    const lineHeight = 7;
+                    
+                    splitText.forEach(line => {
+                        if (y + lineHeight > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin + 10;
+                            addHeader(doc);
+                        }
+                        doc.text(line, margin, y);
+                        y += lineHeight;
+                    });
+
+                    const totalPages = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= totalPages; i++) {
+                        doc.setPage(i);
+                        addFooter(doc, i, totalPages);
+                    }
+                    doc.save(`jarvina-export-${timestamp}.pdf`);
+                    break;
+                case 'excel':
+                    const data = [[text]];
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Exported Text");
+                    XLSX.writeFile(wb, `jarvina-export-${timestamp}.xlsx`);
+                    break;
+                case 'word':
+                    const { Document, Packer, Paragraph, TextRun } = docx;
+                    const paragraphs = text.split('\n').map(line => new Paragraph({ children: [new TextRun(line)] }));
+                    const wordDoc = new Document({ sections: [{ children: paragraphs }] });
+                    Packer.toBlob(wordDoc).then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `jarvina-export-${timestamp}.docx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                    break;
+            }
+        }
+
+        function showCanvasCode() {
+            canvasCodeContainer.style.display = 'block';
+            canvasPreviewContainer.style.display = 'none';
+            canvasCodeBtn.classList.add('active');
+            canvasPreviewBtn.classList.remove('active');
+        }
+
+        function showCanvasPreview() {
+            canvasCodeContainer.style.display = 'none';
+            canvasPreviewContainer.style.display = 'block';
+            canvasCodeBtn.classList.remove('active');
+            canvasPreviewBtn.classList.add('active');
+        }
+
+        canvasCodeBtn.addEventListener('click', showCanvasCode);
+        canvasPreviewBtn.addEventListener('click', showCanvasPreview);
+        closeCanvasButton.addEventListener('click', () => {
+            canvasCodePreview.srcdoc = ''; 
+            canvasCodeInput.value = ''; 
+            showChat(false);
+        });
 
         function runCanvasCode() {
             const code = canvasCodeInput.value;
-            canvasCodePreview.innerHTML = ''; // Clear previous content
-
-            const iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.srcdoc = code; // Load the user's code into the iframe securely
-            
-            canvasCodePreview.appendChild(iframe);
-            console.log('runCanvasCode: Code loaded into iframe for preview.');
+            canvasCodePreview.srcdoc = code;
+            showCanvasPreview();
         }
 
-        // --- Custom Instructions Logic ---
-        saveCustomInstructionsButton.addEventListener('click', async () => {
-            const instructions = customInstructionsTextarea.value.trim();
-            try {
-                const response = await fetch('/api/save_custom_instructions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ instructions: instructions })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    customInstructionsStatus.textContent = data.message;
-                    customInstructionsStatus.style.color = 'green';
-                } else {
-                    customInstructionsStatus.textContent = `Error: ${data.detail || 'Failed to save instructions.'}`;
-                    customInstructionsStatus.style.color = 'red';
-                }
-            } catch (error) {
-                console.error('saveCustomInstructionsButton: Error saving custom instructions:', error);
-                customInstructionsStatus.textContent = 'Error: Could not connect to the server to save instructions.';
-                customInstructionsStatus.style.color = 'red';
-            }
-        });
+        runCanvasCodeButton.addEventListener('click', runCanvasCode);
 
-        async function loadCustomInstructions() {
-            try {
-                const response = await fetch('/api/load_custom_instructions');
-                const data = await response.json();
-                if (response.ok && data.instructions !== undefined) {
-                    customInstructionsTextarea.value = data.instructions;
-                } else {
-                    console.warn('loadCustomInstructions: No custom instructions found or error loading:', data.detail);
-                }
-            } catch (error) {
-                console.error('loadCustomInstructions: Error loading custom instructions:', error);
-            }
-        }
     </script>
 </body>
 </html>
