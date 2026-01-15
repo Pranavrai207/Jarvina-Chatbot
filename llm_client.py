@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+import google.genai as genai
 
 class GeminiClient:
     def __init__(self):
@@ -32,3 +32,4 @@ class GeminiClient:
             # Log the full exception for debugging
             print(f"An error occurred during content generation: {e}")
             raise RuntimeError(f"AI generation failed: {str(e)}")
+
