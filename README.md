@@ -1,100 +1,98 @@
-Jarvina: The Personal AI Assistant
-Jarvina is a personal AI assistant built with a modern web stack, providing a clean, responsive chat interface powered by the Gemini AI model. This project serves as a robust template for developing AI-driven applications with a focus on real-time conversational experiences, dynamic data handling, and structured outputs.
+Jarvina: The AI-Powered Personal Assistant Platform
+
+Jarvina is an AI-powered personal assistant built with a modern full-stack web architecture, providing a clean and responsive chat interface powered by the Gemini AI model. The project is designed as an all-rounder template for building AI-driven applications, with a focus on real-time conversational experiences, structured data handling, and business-ready product workflows. Jarvina demonstrates how technical systems can support analytics, customer-facing demos, and scalable SaaS-style applications.
 
 Features
-Conversational AI: Integrates with the Gemini AI model via a dedicated Python client for natural, multi-turn chat.
 
-Structured Responses: The backend is configured to prompt the AI for structured JSON output, which the frontend parses and displays in a clean, organized format.
+Conversational AI: Integrates with the Gemini AI model via a dedicated Python client to support natural, multi-turn conversations suitable for real-world usage and demonstrations.
 
-Responsive Web Interface: A modern, visually appealing UI built with HTML, CSS, and JavaScript. The layout is fully responsive, ensuring a consistent user experience on both desktop and mobile devices.
+Structured Responses: The backend is configured to prompt the AI for structured JSON outputs, enabling reliable data parsing, organized frontend display, and downstream analytical use cases.
 
-Customizable Persona: A memory.json file allows for easy configuration of the AI's persona, including its name, tone, and specific rules.
+Responsive Web Interface: A clean, modern UI built with HTML, CSS, and JavaScript. The interface is fully responsive, ensuring consistent user experience across desktop and mobile devices, making it demo-ready for customer-facing scenarios.
 
-Custom Instructions: Users can provide their own custom instructions through a dedicated settings page, which are then included in the system prompt for a personalized experience.
+Customizable Persona: A memory.json configuration file allows easy customization of the AI’s persona, including its name, tone, and behavioral rules, supporting flexible product and demo use cases.
 
-Persistent Chat History: Chat conversations are saved to local storage, allowing users to leave and return to their session without losing their conversation.
+Custom Instructions: Users can provide custom instructions through a settings interface, which are dynamically injected into the system prompt to personalize interactions.
 
-Local Environment Setup: The project is configured to read API keys from a .env file, promoting secure development practices by keeping sensitive information out of the codebase.
+Persistent Chat History: Chat conversations are stored locally, allowing users to leave and return without losing session context, reflecting real SaaS-style user experience design.
+
+Secure Environment Setup: API keys and sensitive configuration are managed using a .env file, following secure development and deployment best practices.
 
 Tech Stack
+
 Backend:
-
-FastAPI: A high-performance, easy-to-use web framework for building the API endpoints.
-
-Uvicorn: The ASGI server used to run the FastAPI application.
-
-google-generativeai: The official Python client library for interacting with the Gemini API.
-
-python-dotenv: Manages environment variables for secure API key handling.
+FastAPI – High-performance Python framework for building scalable API endpoints
+Uvicorn – ASGI server used to run the FastAPI application
+google-generativeai – Official Python client for interacting with the Gemini API
+python-dotenv – Manages environment variables for secure API key handling
 
 Frontend:
-
-HTML, CSS, JavaScript: The core technologies for the user interface and client-side logic.
-
-Tailwind CSS: A utility-first CSS framework for rapid and responsive styling.
+HTML, CSS, JavaScript – Core technologies for the user interface and client-side logic
+Tailwind CSS – Utility-first CSS framework for rapid, responsive, and consistent styling
 
 Getting Started
-Follow these instructions to get a copy of the project up and running on your local machine.
+
+Follow the instructions below to run the project locally.
 
 Prerequisites
 Python 3.8+
-
 pip (Python package installer)
 
 Installation
-Clone the repository:
 
-git clone https://github.com/your-username/jarvina-ai-assistant.git
-cd jarvina-ai-assistant
+Clone the repository:
+git clone https://github.com/Pranavrai207/Jarvina-Chatbot.git
+
+cd Jarvina-Chatbot
 
 Create and activate a Python virtual environment:
-
 python -m venv venv
-# On Windows
+
+On Windows:
 .\venv\Scripts\activate
-# On macOS or Linux
+
+On macOS or Linux:
 source venv/bin/activate
 
 Install the required Python packages:
-
 pip install -r requirements.txt
 
-If you don't have a requirements.txt file, you can manually install the dependencies:
-
+If requirements.txt is not available, install dependencies manually:
 pip install fastapi uvicorn python-dotenv pydantic google-generativeai jinja2
 
-Set up your Gemini API key:
+Set Up Gemini API Key
 
-Obtain a Gemini API key from the Google AI Studio.
-
-Create a file named .env in the root of your project.
-
-Add your API key to the file in the following format:
-
+Obtain a Gemini API key from Google AI Studio.
+Create a file named .env in the root directory.
+Add your API key in the following format:
 GEMINI_API_KEY="YOUR_API_KEY_HERE"
 
 Running the Application
-Start the FastAPI server using Uvicorn:
 
+Start the FastAPI server using Uvicorn:
 uvicorn app:app --reload
 
-The --reload flag is useful for development, as it automatically restarts the server when code changes are detected.
+The --reload flag enables automatic server restarts during development.
 
-Open your web browser and navigate to http://127.0.0.1:8000.
+Open your browser and navigate to:
+http://127.0.0.1:8000
 
-You should see the "Jarvina AI Assistant" chat interface. You can now start a new chat, and the AI will respond with a structured output.
+You should see the Jarvina AI Assistant chat interface and can begin interacting with the system.
 
 Project Structure
+
 jarvina-ai-assistant/
-├── app.py              # Main FastAPI application file
-├── llm_client.py       # Python client for interacting with the Gemini API
-├── index.html          # Frontend web page for the chat interface
-├── requirements.txt    # List of project dependencies
-├── .env                # Environment variables (e.g., API keys)
-└── memory.json         # Stores persona data and custom replies
+├── app.py – Main FastAPI application file
+├── llm_client.py – Python client for interacting with the Gemini API
+├── index.html – Frontend web interface for the chat application
+├── requirements.txt – Project dependency definitions
+├── .env – Environment variables (API keys, not committed)
+└── memory.json – Stores AI persona configuration and rules
 
 Contributing
-Contributions are welcome! If you have any suggestions, bug reports, or feature requests, please feel free to open an issue or submit a pull request.
+
+Contributions are welcome. If you have suggestions, feature ideas, or bug reports, feel free to open an issue or submit a pull request.
 
 License
+
 This project is licensed under the MIT License.
